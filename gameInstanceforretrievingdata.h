@@ -19,6 +19,18 @@
 #include "gameInstanceforretrievingdata.generated.h"
 
 USTRUCT(BlueprintType)
+struct FspotifySong
+{
+	GENERATED_BODY()
+
+	FString name;
+
+	FString imageURL;
+
+	FString id;
+};
+
+USTRUCT(BlueprintType)
 struct FspotifyArtist
 {
 	GENERATED_BODY()
@@ -26,6 +38,10 @@ struct FspotifyArtist
 	FString name;
 
 	FString imageURL;
+
+	FString id;
+
+	FspotifySong topSong;
 };
 
 UCLASS()
@@ -43,6 +59,8 @@ public:
 
 	void onTopArtistsResponse(FHttpRequestPtr request, FHttpResponsePtr response, bool successful); //recieves the response for top artists and decodes it
 
+	void onTopSongResponse(FHttpRequestPtr request, FHttpResponsePtr response, bool successful, FspotifyArtist artist); //recieves the response for top songs and decodes it
+
 	TArray<FspotifyArtist> topArtists;
 
 	int32 expires;
@@ -51,5 +69,7 @@ private:
 	void parseSpotifyCode(); //the decoding function
 
 	void getTopArtists();
+
+	void getTopSong(FspotifyArtist artist);
 
 };

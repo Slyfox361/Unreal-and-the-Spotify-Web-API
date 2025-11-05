@@ -79,25 +79,22 @@ void UgameInstanceforretrievingdata::onTokenResponse(FHttpRequestPtr request, FH
 
 void UgameInstanceforretrievingdata::getTopArtists()
 {
-    UE_LOG(LogTemp, Warning, TEXT("FIND ME! called artist 1 function"));
+    UE_LOG(LogTemp, Warning, TEXT("FIND ME! called artist function"));
     FHttpModule* http = &FHttpModule::Get(); //gets the global http module
     FHttpRequestPtr request = http->CreateRequest(); //creates an http request object
 
     //gets the top artists
-    request->SetURL("https://api.spotify.com/v1/me/top/artists?limit=5&time_range=long_term&country=GB"); //sets the url to request the top artists for the current user
+    request->SetURL("https://api.spotify.com/v1/me/top/artists?limit=5&time_range=medium_term&country=GB"); //sets the url to request the top artists for the current user
     request->SetVerb("GET"); //this sets the method (in this case retreiving the data)
     request->SetHeader("Authorization", "Bearer " + accessToken); //uses the access token
     request->SetHeader("Content-Type", "application/json"); //sets the response type
 
-    UE_LOG(LogTemp, Warning, TEXT("FIND ME! checking Access Token: %s"), *accessToken);
-    UE_LOG(LogTemp, Warning, TEXT("FIND ME! checking Access Token expiration: %d"), expires);
     request->OnProcessRequestComplete().BindUObject(this, &UgameInstanceforretrievingdata::onTopArtistsResponse); //sets the function to respond
     request->ProcessRequest(); //sends the request
 }
 
 void UgameInstanceforretrievingdata::onTopArtistsResponse(FHttpRequestPtr request, FHttpResponsePtr response, bool successful)
 {
-    UE_LOG(LogTemp, Warning, TEXT("FIND ME! called artist 2 function"));
     if(!successful || !response.IsValid()) return; //if the response is unsucceeful or empty, exit
 
     UE_LOG(LogTemp, Warning, TEXT("FIND ME! looking for artists..."));
@@ -106,10 +103,8 @@ void UgameInstanceforretrievingdata::onTopArtistsResponse(FHttpRequestPtr reques
 
     if (FJsonSerializer::Deserialize(jsonreader, jsonobj)) //checks for the json file and finds all the variables
     {
-        UE_LOG(LogTemp, Warning, TEXT("FIND ME! found object!"));
         topArtists.Empty(); //empties the array
 
-        UE_LOG(LogTemp, Warning, TEXT("FIND ME! limit: %d"), jsonobj->GetIntegerField(TEXT("limit")));
         TSharedPtr<FJsonObject> errorObject = jsonobj->GetObjectField(TEXT("error"));
         if (errorObject.IsValid())
         {
@@ -128,6 +123,7 @@ void UgameInstanceforretrievingdata::onTopArtistsResponse(FHttpRequestPtr reques
             FspotifyArtist artist; //creates an artist struct
 
             artist.name = artistobj->GetStringField(TEXT("name")); //gets the name of the artist
+            artist.id = artistobj->GetStringField(TEXT("id"));
 
             UE_LOG(LogTemp, Warning, TEXT("FIND ME! found: %s"), *artist.name);
 
@@ -137,7 +133,76 @@ void UgameInstanceforretrievingdata::onTopArtistsResponse(FHttpRequestPtr reques
                 artist.imageURL = images[0]->AsObject()->GetStringField(TEXT("url"));
             }
 
+            UE_LOG(LogTemp, Warning, TEXT("FIND ME! initial top song name: %s"), *artist.topSong.name);
             topArtists.Add(artist);
+        }
+    }
+
+    for (FspotifyArtist& artist : topArtists)
+    {
+        getTopSong(artist);
+    }
+}
+
+void UgameInstanceforretrievingdata::getTopSong(FspotifyArtist artist)
+{
+    UE_LOG(LogTemp, Warning, TEXT("FIND ME! called song function"));
+    FHttpModule* http = &FHttpModule::Get(); //gets the global http module
+    FHttpRequestPtr request = http->CreateRequest(); //creates an http request object
+
+    //gets the top artists
+    request->SetURL("https://api.spotify.com/v1/artists/" + artist.id + "/top-tracks?market=GB"); //sets the url to request the top songs for the current artist
+    request->SetVerb("GET"); //this sets the method (in this case retreiving the data)
+    request->SetHeader("Authorization", "Bearer " + accessToken); //uses the access token
+    request->SetHeader("Content-Type", "application/json"); //sets the response type
+
+    //request->OnProcessRequestComplete().BindUObject(this, &UgameInstanceforretrievingdata::onTopSongResponse); //sets the function to respond
+    request->OnProcessRequestComplete().BindLambda(
+        [this, artist](FHttpRequestPtr request, FHttpResponsePtr response, bool successful)
+        {
+            this->onTopSongResponse(request, response, successful, artist);
+        }
+    );
+    request->ProcessRequest(); //sends the request
+}
+
+void UgameInstanceforretrievingdata::onTopSongResponse(FHttpRequestPtr request, FHttpResponsePtr response, bool successful, FspotifyArtist artist)
+{
+    if(!successful || !response.IsValid()) return; //if the response is unsucceeful or empty, exit
+
+    UE_LOG(LogTemp, Warning, TEXT("FIND ME! looking for songs..."));
+    UE_LOG(LogTemp, Warning, TEXT("FIND ME! artist is: %s"), *artist.name);
+    TSharedPtr<FJsonObject> jsonobj;
+    TSharedRef<TJsonReader<>> jsonreader = TJsonReaderFactory<>::Create(response->GetContentAsString()); //gets the json response text
+
+    if (FJsonSerializer::Deserialize(jsonreader, jsonobj)) //checks for the json file and finds all the variables
+    {
+        TSharedPtr<FJsonObject> errorObject = jsonobj->GetObjectField(TEXT("error")); //checks for any errors
+        if (errorObject.IsValid())
+        {
+            int32 status = errorObject->GetIntegerField(TEXT("status"));
+            FString message = errorObject->GetStringField(TEXT("message"));
+
+            UE_LOG(LogTemp, Warning, TEXT("Status: %d, Message: %s"), status, *message);
+        }
+
+
+        const TArray<TSharedPtr<FJsonValue>> songs = jsonobj->GetArrayField(TEXT("tracks")); //gets the tracks array
+
+        TSharedPtr<FJsonObject> topSongObj = songs[0]->AsObject(); //sets the json file as an accessable object
+
+        artist.topSong.name = topSongObj->GetStringField(TEXT("name")); //gets the name of the artist
+        artist.topSong.id = topSongObj->GetStringField(TEXT("id"));
+
+        UE_LOG(LogTemp, Warning, TEXT("FIND ME! found: %s"), *artist.topSong.name);
+    }
+
+    for (int i=0;i<5;i++)
+    {
+        if (topArtists[i].id == artist.id)
+        {
+            topArtists[i] = artist;
+            break;
         }
     }
 }

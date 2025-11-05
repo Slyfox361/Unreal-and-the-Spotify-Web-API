@@ -53,13 +53,28 @@ void ASpotifyApiPlayerController::BeginPlay()
 	}
 }
 
+void ASpotifyApiPlayerController::Tick(float DeltaTime)
+{
+	bool temp = false;
+	if (gi->topArtists.Num() == 5)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("FIND ME! found for widget: %s"), *gi->topArtists[4].topSong.name);
+		if (gi->topArtists[4].topSong.name != "")
+		{
+			UE_LOG(LogTemp, Warning, TEXT("FIND ME! songs all found"));
+			setDebugText();
+		}
+	}
+}
+
 void ASpotifyApiPlayerController::setDebugText()
 {
-	FString debugText = "Top Artists: ";
+	UE_LOG(LogTemp, Warning, TEXT("FIND ME! tried to make text"));
+	FString debugText = "";
 
 	for (FspotifyArtist artist : gi->topArtists)
 	{
-		debugText += artist.name;
+		debugText += artist.name + ": " + artist.topSong.name + "\n";
 	}
 	widget->setCodeText(debugText);
 }
