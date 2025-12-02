@@ -1,5 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
+//no longer in use
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -24,3 +26,4 @@ protected:
 	UTextBlock* debugText; //gets access to the text block to change it
 	
 };
+
