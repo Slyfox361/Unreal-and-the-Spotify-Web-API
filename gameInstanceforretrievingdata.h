@@ -15,34 +15,43 @@
 #include "Serialization/JsonSerializer.h"
 
 #include "Templates/SharedPointer.h"
+#include "PixelFormat.h"
 
 #include "gameInstanceforretrievingdata.generated.h"
 
+class UTexture2D;
+
+//song structure
 USTRUCT(BlueprintType)
 struct FspotifySong
 {
 	GENERATED_BODY()
 
-	FString name;
+	FString name; //for debug
 
-	FString imageURL;
-
-	FString id;
+	FString id; //spotify ID to queue and play it
 };
 
+//artist structure
 USTRUCT(BlueprintType)
 struct FspotifyArtist
 {
 	GENERATED_BODY()
 
-	FString name;
+	FString name; //artist (user)name
 
-	FString imageURL;
+	FString imageURL; //profile picture image
 
-	FString id;
+	UPROPERTY(BlueprintReadWrite)
+	UTexture2D* image; //Texture2D to allow image to be used in the scene
 
-	FspotifySong topSong;
+	FString id; //spotify ID to find the top song
+
+	FspotifySong topSong; //associated top song
 };
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FonFinishedRetrieve);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FgottenCurrentPlayback, int32, num);
 
 UCLASS()
 class SPOTIFYAPI_API UgameInstanceforretrievingdata : public UGameInstance
@@ -59,17 +68,40 @@ public:
 
 	void onTopArtistsResponse(FHttpRequestPtr request, FHttpResponsePtr response, bool successful); //recieves the response for top artists and decodes it
 
-	void onTopSongResponse(FHttpRequestPtr request, FHttpResponsePtr response, bool successful, FspotifyArtist artist); //recieves the response for top songs and decodes it
+	void onTopSongResponse(FHttpRequestPtr request, FHttpResponsePtr response, bool successful, FspotifyArtist& artist); //recieves the response for top songs and decodes it
 
-	TArray<FspotifyArtist> topArtists;
+	void onArtistImageResponse(FHttpRequestPtr request, FHttpResponsePtr response, bool successful, FspotifyArtist& artist); //recieves the response for the artist's downlaoded image and tries to convert it to a Texture2D
 
-	int32 expires;
+	void onCurrentSongResponse(FHttpRequestPtr request, FHttpResponsePtr response, bool successful, int32 num); //recieves the response for the current playback
+
+	//controlling playback
+	void getCurrentSong(int32 num); //gets the song currently playing
+	FString currentsongid;
+	void queueSpotifyTrack(FString uri);
+	void skipTrack();
+	void play();
+
+	UPROPERTY(BlueprintAssignable)
+	FonFinishedRetrieve onFinishedRetrieve; //event dispatcher for when all data is collected
+
+	UPROPERTY(BlueprintAssignable)
+	FgottenCurrentPlayback gottenCurrentPlayback; //event dispatcher for when the current song playing has been retrieved
+
+	TArray<FspotifyArtist> topArtists; //array of the 5 top artists
+
+	int32 expires; //expiration of the accessToken
+
+	int32 completionCount; //for the event dispatcher
 
 private:
-	void parseSpotifyCode(); //the decoding function
+	void parseSpotifyCode(); //the inital decoding function to get access
 
-	void getTopArtists();
+	void getTopArtists(); //gets the user's top 5 artists
 
-	void getTopSong(FspotifyArtist artist);
+	void getTopSong(FspotifyArtist& artist); //gets the user's top 5 artists' top song
+
+	void getArtistImage(FspotifyArtist& artist); //IT DOES download the image from the url
+
+	
 
 };
