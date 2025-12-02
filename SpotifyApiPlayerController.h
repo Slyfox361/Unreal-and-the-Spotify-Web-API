@@ -24,6 +24,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
 	UInputMappingContext* InputMappingContext;
 
+	//the widet code is no longer in use
 	void setDebugText();
 
 	UgameInstanceforretrievingdata* gi;
@@ -36,3 +37,4 @@ protected:
 
 	// End Actor interface
 };
+
