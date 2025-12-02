@@ -11,6 +11,8 @@ void ASpotifyApiPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
+	//the widet code is no longer in use
+
 	// get the enhanced input subsystem
 	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 	{
@@ -77,4 +79,5 @@ void ASpotifyApiPlayerController::setDebugText()
 		debugText += artist.name + ": " + artist.topSong.name + "\n";
 	}
 	widget->setCodeText(debugText);
+
 }
